@@ -9,6 +9,9 @@ import time
 
 from scipy.interpolate import RectBivariateSpline
 
+#For consistency
+np.random.seed(10)
+
 def read_pes(fName,returnFormat='array'):
     pes = pd.read_csv('../data/'+fName,sep='\t')
     pes['EHFB'] -= pes['EHFB'].mean()
@@ -124,11 +127,16 @@ def pes_rmse(uniqueCoords,zz,newPes,flip=False):
     return rmse, (x,y), pesDiff
 
 class ComplexLasso:
-    def __init__(self,lamb,sampleMatrix,Psi,y,fileName):
+    def __init__(self,lamb,y,fileName,sampleMatrix=None,Psi=None,CPsi=None):
+        # if (sampleMatrix is None) or (Psi is None):
+        #     if CPsi is None:
+        #         raise ValueError
         self.lamb = lamb
         self.sampleMatrix = sampleMatrix
         self.Psi = Psi
         self.y = y
+        
+        self.CPsi = CPsi
         
         self.fileName = fileName
         
@@ -136,7 +144,10 @@ class ComplexLasso:
         
     def _setup_matrix_products(self):
         #Can be moved elsewhere later
-        C_Psi = self.sampleMatrix @ self.Psi
+        if self.sampleMatrix is not None:
+            C_Psi = self.sampleMatrix @ self.Psi
+        else:
+            C_Psi = self.CPsi
         self.PsiDagger_CT_C_Psi = np.conjugate(C_Psi).T @ C_Psi
         self.yT_C_A = self.y.T @ np.real(C_Psi)
         self.yT_C_B = self.y.T @ np.imag(C_Psi)
@@ -147,17 +158,35 @@ class ComplexLasso:
         a = np.real(s)
         b = np.imag(s)
         
-        f1 = a.T @ self.PsiDagger_CT_C_Psi @ a + b.T @ self.PsiDagger_CT_C_Psi @ b + self.yT_y
+        f1 = np.linalg.norm(self.CPsi @ a)**2 + np.linalg.norm(self.CPsi@b)**2 + self.yT_y
+        # f1 = a.T @ self.PsiDagger_CT_C_Psi @ a + b.T @ self.PsiDagger_CT_C_Psi @ b + self.yT_y
         f1 += -2*(self.yT_C_A @ a - self.yT_C_B @ b)
         
         f2 = self.lamb * np.sum(np.sqrt(a**2+b**2))
         return f1 + f2
     
     def _grad_f1(self,a,b):
-        return 2*(self.PsiDagger_CT_C_Psi @ a - self.yT_C_A), 2*(self.PsiDagger_CT_C_Psi @ b + self.yT_C_B)
+        term1 = self.CPsi @ a
+        term1 = np.conjugate(self.CPsi).T @ term1
+        term1 -= self.yT_C_A
+        
+        term2 = self.CPsi @ b
+        term2 = np.conjugate(self.CPsi).T @ term2
+        term2 += self.yT_C_B
+        
+        return 2*term1, 2*term2
+        # return 2*(self.PsiDagger_CT_C_Psi @ a - self.yT_C_A), 2*(self.PsiDagger_CT_C_Psi @ b + self.yT_C_B)
     
     def _grad_f2(self,a,b):
-        return self.lamb*a/np.sqrt(a**2 + b**2), self.lamb*b/np.sqrt(a**2 + b**2)
+        realRet, imagRet = np.zeros(a.shape), np.zeros(a.shape)
+        goodInds = np.where((a!=0)&(b!=0))
+        # badInds = np.where((a==0)&(b==0))
+        # print(badInds)
+        # print(np.min(np.abs(a)),np.min(np.abs(b)))
+        realRet[goodInds] = self.lamb*a[goodInds]/np.sqrt(a[goodInds]**2 + b[goodInds]**2)
+        imagRet[goodInds] = self.lamb*b[goodInds]/np.sqrt(a[goodInds]**2 + b[goodInds]**2)
+        return realRet, imagRet
+        # return self.lamb*a/np.sqrt(a**2 + b**2), self.lamb*b/np.sqrt(a**2 + b**2)
     
     def grad(self,s):
         a = np.real(s)
@@ -168,6 +197,34 @@ class ComplexLasso:
         
         return np.real(f1_a+f2_a), np.real(f1_b+f2_b)
     
+    def hessian(self,s):
+        hessOut = np.zeros((2*len(s),2*len(s)))
+        
+        hessOut[:len(s),:len(s)] = 2*self.PsiDagger_CT_C_Psi
+        hessOut[len(s):,len(s):] = 2*self.PsiDagger_CT_C_Psi
+        
+        a = np.real(s)
+        b = np.imag(s)
+        
+        denom = (a**2 + b**2)**(3/2)
+        goodInds = np.where((a!=0)&(b!=0))
+        
+        v1 = self.lamb*b**2
+        v1[goodInds] /= denom[goodInds]
+        
+        v2 = -self.lamb*a*b
+        v2[goodInds] /= denom[goodInds]
+        
+        v3 = self.lamb*a**2
+        v3[goodInds] /= denom[goodInds]
+        
+        hessOut[:len(s),:len(s)] += np.diag(v1)
+        hessOut[:len(s),len(s):] = np.diag(v2)
+        hessOut[len(s):,:len(s)] = np.diag(v2)
+        hessOut[len(s):,len(s):] += np.diag(v3)
+        
+        return hessOut
+    
     def write_statistics(self):
         h5File = h5py.File(self.fileName,'a')
         
@@ -176,6 +233,36 @@ class ComplexLasso:
         h5File['lossParams'].attrs.create('lambda',self.lamb)
         
         h5File.close()
+        return None
+    
+def bb_step(gradF1,gradF2,s1,s2):
+    deltaF = gradF1 - gradF2
+    deltaS = s1 - s2
+    
+    deltaFConj = np.conjugate(deltaF)
+    deltaSConj = np.conjugate(deltaS)
+    
+    denom = 2*(deltaFConj @ deltaF)
+    num = deltaSConj @ deltaF + deltaFConj @ deltaS
+    
+    if denom !=0:
+        return num/denom
+    else:
+        return None
+    
+def bb_step_2(gradF1,gradF2,s1,s2):
+    deltaF = gradF1 - gradF2
+    deltaS = s1 - s2
+    
+    deltaFConj = np.conjugate(deltaF)
+    deltaSConj = np.conjugate(deltaS)
+    
+    num = 2*deltaSConj @ deltaS
+    denom = deltaSConj @ deltaF + deltaFConj @ deltaS
+    
+    if denom != 0:
+        return num/denom
+    else:
         return None
     
 class ComplexGradientDescent:
@@ -203,6 +290,48 @@ class ComplexGradientDescent:
         
         return s
     
+    def run_bb(self,initialGuess,fName,verbose=True,stepSize='method_1'):
+        s = initialGuess.copy()
+        
+        sMinus1 = np.zeros(s.shape,dtype=complex)
+        sMinus2 = np.zeros(s.shape,dtype=complex)
+        
+        gradFMinus1 = np.zeros(s.shape,dtype=complex)
+        gradFMinus2 = np.zeros(s.shape,dtype=complex)
+        
+        t0 = time.time()
+        for i in range(self.maxIters):
+            sMinus2 = sMinus1.copy()
+            gradFMinus2 = gradFMinus1.copy()
+            
+            self.lossVals[i] = np.real(self.lossClass.loss(s))
+            realGrad, imagGrad = self.lossClass.grad(s)
+            
+            sMinus1 = s.copy()
+            gradFMinus1 = realGrad + 1j*imagGrad
+            
+            if stepSize == 'method_1':
+                dt = bb_step(gradFMinus1,gradFMinus2,sMinus1,sMinus2)
+            elif stepSize == 'method_2':
+                dt = bb_step_2(gradFMinus1,gradFMinus2,sMinus1,sMinus2)
+            if dt is None:
+                break
+            
+            s -= dt*(realGrad + 1j*imagGrad)
+            if verbose:
+                print('Loss at iteration %d: %.3e'%(i,self.lossVals[i]),flush=True)
+                
+            s[np.abs(s)<10**(-16)] = 0
+            
+        t1 = time.time()
+        
+        self.write_results(fName,t1-t0,s)
+        
+        return s
+    
+    def run_line_search(self):
+        raise NotImplementedError
+    
     def write_results(self,fName,runTime,sol):
         h5File = h5py.File(fName,'a')
         
@@ -218,7 +347,33 @@ class ComplexGradientDescent:
         h5File.close()
         return None
     
+class ComplexNewtonsMethod:
+    def __init__(self,lossClass,maxIters,stepSize):
+        self.lossClass = lossClass
+        self.maxIters = maxIters
+        self.stepSize = stepSize
+        
+        self.lossVals = np.zeros(self.maxIters)
+    
+def make_CPsi(sampleMatrix,dft1d):
+    n = dft1d.shape[0]
+    ret = np.zeros((sampleMatrix.shape[0],n**2),dtype=complex)
+    
+    rng = np.arange(n**2,dtype=int)
+    
+    for i in range(ret.shape[0]):
+        idx = np.where(sampleMatrix[i]!=0)[0]
+        ret[i] = dft1d[idx//n,rng//n] * dft1d[idx%n,rng%n]
+        # for k in range(n**2):
+        #     # print(i,idx,k)
+        #     ret[i,k] = dft1d[idx//n,k//n] * dft1d[idx%n,k%n]
+    return ret
+    
 outputFile = 'test.h5'
+try:
+    os.remove(outputFile)
+except FileNotFoundError:
+    pass
     
 sparseGridOrder = 6
 if sparseGridOrder > 6:
@@ -230,22 +385,34 @@ samplePoints, sampleEvals = SamplePoints.get_sparse_grid_2d(uniqueCoords,zz,spar
 arrDim, sampleMatrix = SamplePoints.get_sample_matrix_2d(sparseGridOrder)
 
 dft1d = scipy.fft.fft(np.eye(arrDim))
+# dft1d = np.fft.fftshift(scipy.fft.fft(np.eye(arrDim)))
+CPsi = make_CPsi(sampleMatrix,dft1d)
 Psi = np.kron(dft1d,dft1d)
+
+# print(sampleMatrix @ Psi - CPsi)
+# sys.exit()
 
 h5File = h5py.File(outputFile,'a')
 h5File.attrs.create('basisName','dft')
 h5File.close()
 
 lamb = 500
-lassoClass = ComplexLasso(lamb,sampleMatrix,Psi,sampleEvals,outputFile)
+# lamb = 50
+# lassoClass = ComplexLasso(lamb,sampleEvals,outputFile,sampleMatrix,Psi)
+lassoClass = ComplexLasso(lamb,sampleEvals,outputFile,CPsi=CPsi)
 
-nIters = 1000
+nIters = 500
 stepSize = 10**(-4)
 opt = ComplexGradientDescent(lassoClass,nIters,stepSize)
 
-s = np.random.rand(sampleMatrix.shape[1]).astype(complex)
+# s = np.random.rand(sampleMatrix.shape[1]).astype(complex)
+s = np.zeros(sampleMatrix.shape[1]).astype(complex)
+# s = opt.run_bb(s,outputFile,stepSize='method_1')
+
+rt0 = time.time()
 s = opt.run(s,outputFile)
-    
+rt1 = time.time()
+print("Run time: %.6f"%(rt1-rt0))
 
 fig, ax = plt.subplots()
 ax.plot(opt.lossVals)
@@ -255,7 +422,18 @@ fig, ax = plt.subplots()
 ax.plot(np.real(s))
 ax.plot(np.imag(s))
 
+#%%
+
+t0 = time.time()
 newPes = Psi @ s
+t1 = time.time()
+print('Matrix multiplication time: %.6f'%(t1-t0))
+# newPes = np.fft.fftshift(np.fft.fft(s))
+
+t0 = time.time()
+newPes = scipy.fft.fft2(s.reshape(2*(arrDim,)))
+t1 = time.time()
+print('FFT time: %.6f'%(t1-t0))
 
 rmse, newCoordVals, pesDiff = pes_rmse(uniqueCoords,zz,newPes.reshape(2*(arrDim,)),flip=True)
 
