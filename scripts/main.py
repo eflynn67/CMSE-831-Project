@@ -10,7 +10,7 @@ import time
 from scipy.interpolate import RectBivariateSpline
 
 #For consistency
-np.random.seed(10)
+# np.random.seed(10)
 
 def read_pes(fName,returnFormat='array'):
     pes = pd.read_csv('../data/'+fName,sep='\t')
@@ -198,6 +198,7 @@ class ComplexLasso:
         return np.real(f1_a+f2_a), np.real(f1_b+f2_b)
     
     def hessian(self,s):
+        raise NotImplementedError('Expect to run into memory issues b/c of large Hessian')
         hessOut = np.zeros((2*len(s),2*len(s)))
         
         hessOut[:len(s),:len(s)] = 2*self.PsiDagger_CT_C_Psi
@@ -265,6 +266,41 @@ def bb_step_2(gradF1,gradF2,s1,s2):
     else:
         return None
     
+def approximate_line_search(CPsi,yT_C_A,yT_C_B,a,b,dFda,dFdb,lamb):
+    CPsi_conj_trans = np.conjugate(CPsi).T
+    
+    denom = a**2 + b**2
+    denom[denom==0] = 10**(-4)
+    #Unimportant - will be zeroed out b/c we always have a/denom or b/denom.
+    #Just prevents runtime errors
+    
+    term1 = CPsi@a
+    term1 = CPsi_conj_trans @ term1
+    va = 2*term1 - 2*yT_C_A + lamb*a/np.sqrt(denom)
+    
+    term2 = CPsi@b
+    term2 = CPsi_conj_trans @ term2
+    vb = 2*term2 + 2*yT_C_B + lamb*a/np.sqrt(denom)
+    
+    term3 = CPsi@dFda
+    wa = -2*CPsi_conj_trans@term3 + lamb*b*(b*dFda - a*dFdb)/denom**(3/2)
+    
+    term4 = CPsi@dFdb
+    wb = -2*CPsi_conj_trans@term4 + lamb*a*(a*dFdb - b*dFda)/denom**(3/2)
+    
+    va = va.astype(float)
+    vb = vb.astype(float)
+    wa = wa.astype(float)
+    wb = wb.astype(float)
+        
+    const = a@va + b@vb
+    linearTerm = a@wa + b@wb - va@dFda - vb@dFdb
+    
+    if linearTerm != 0:
+        return -const/linearTerm
+    
+    return None
+    
 class ComplexGradientDescent:
     def __init__(self,lossClass,maxIters,stepSize):
         self.lossClass = lossClass
@@ -286,7 +322,7 @@ class ComplexGradientDescent:
             
         t1 = time.time()
         
-        self.write_results(fName,t1-t0,s)
+        self.write_results(fName,t1-t0,s,'constant',None)
         
         return s
     
@@ -298,6 +334,8 @@ class ComplexGradientDescent:
         
         gradFMinus1 = np.zeros(s.shape,dtype=complex)
         gradFMinus2 = np.zeros(s.shape,dtype=complex)
+        
+        dtArr = np.zeros(self.maxIters)
         
         t0 = time.time()
         for i in range(self.maxIters):
@@ -315,7 +353,10 @@ class ComplexGradientDescent:
             elif stepSize == 'method_2':
                 dt = bb_step_2(gradFMinus1,gradFMinus2,sMinus1,sMinus2)
             if dt is None:
+                print('Breaking: dt is None')
                 break
+            
+            dtArr[i] = dtArr
             
             s -= dt*(realGrad + 1j*imagGrad)
             if verbose:
@@ -325,14 +366,42 @@ class ComplexGradientDescent:
             
         t1 = time.time()
         
-        self.write_results(fName,t1-t0,s)
+        self.write_results(fName,t1-t0,s,'bb_'+stepSize,dtArr)
         
-        return s
+        return s, dtArr
     
-    def run_line_search(self):
-        raise NotImplementedError
+    def run_approximate_line_search(self,initialGuess,fName,verbose=True):
+        s = initialGuess.copy()
+        
+        dtArr = np.zeros(self.maxIters)
+        
+        t0 = time.time()
+        for i in range(self.maxIters):
+            # print(50*'-')
+            self.lossVals[i] = np.real(self.lossClass.loss(s))
+            realGrad, imagGrad = self.lossClass.grad(s)
+            
+            dt = approximate_line_search(self.lossClass.CPsi,self.lossClass.yT_C_A,
+                                         self.lossClass.yT_C_B,np.real(s),np.imag(s),
+                                         realGrad,imagGrad,self.lossClass.lamb)
+            
+            if dt is None:
+                print('Breaking: dt is None')
+                break
+            
+            dtArr[i] = dt
+            
+            s -= dt*(realGrad + 1j*imagGrad)
+            if verbose:
+                print('Loss, dt at iteration %d: %.3e %.3e'%(i,self.lossVals[i],dt),flush=True)
+            
+        t1 = time.time()
+        
+        self.write_results(fName,t1-t0,s,'approx_line_search',dtArr)
+        
+        return s, dtArr
     
-    def write_results(self,fName,runTime,sol):
+    def write_results(self,fName,runTime,sol,dtMethod,dtArr):
         h5File = h5py.File(fName,'a')
         
         h5File.attrs.create('method','ComplexGradientDescent')
@@ -342,7 +411,11 @@ class ComplexGradientDescent:
         h5File.create_dataset('solution',data=sol)
         
         h5File.create_group('optimizerParams')
-        h5File['optimizerParams'].attrs.create('stepSize',self.stepSize)
+        if dtMethod == 'constant':
+            h5File['optimizerParams'].attrs.create('stepSize',self.stepSize)
+        else:
+            h5File['optimizerParams'].create_dataset('dtArr',data=dtArr)
+        h5File['optimizerParams'].attrs.create('dtMethod',dtMethod)
         
         h5File.close()
         return None
@@ -375,7 +448,7 @@ try:
 except FileNotFoundError:
     pass
     
-sparseGridOrder = 6
+sparseGridOrder = 5
 if sparseGridOrder > 6:
     raise ValueError("Expect to reach desktop memory limits soon")
     
@@ -396,8 +469,8 @@ h5File = h5py.File(outputFile,'a')
 h5File.attrs.create('basisName','dft')
 h5File.close()
 
-lamb = 500
-# lamb = 50
+# lamb = 500
+lamb = 1000
 # lassoClass = ComplexLasso(lamb,sampleEvals,outputFile,sampleMatrix,Psi)
 lassoClass = ComplexLasso(lamb,sampleEvals,outputFile,CPsi=CPsi)
 
@@ -405,12 +478,13 @@ nIters = 500
 stepSize = 10**(-4)
 opt = ComplexGradientDescent(lassoClass,nIters,stepSize)
 
-# s = np.random.rand(sampleMatrix.shape[1]).astype(complex)
-s = np.zeros(sampleMatrix.shape[1]).astype(complex)
-# s = opt.run_bb(s,outputFile,stepSize='method_1')
+s = np.random.rand(sampleMatrix.shape[1]).astype(complex)
+# s = np.zeros(sampleMatrix.shape[1]).astype(complex)
 
 rt0 = time.time()
-s = opt.run(s,outputFile)
+# s = opt.run(s,outputFile)
+# s = opt.run_bb(s,outputFile,stepSize='method_1')
+s, dtArr = opt.run_approximate_line_search(s,outputFile)
 rt1 = time.time()
 print("Run time: %.6f"%(rt1-rt0))
 
@@ -421,6 +495,10 @@ ax.set(yscale='log')
 fig, ax = plt.subplots()
 ax.plot(np.real(s))
 ax.plot(np.imag(s))
+
+fig, ax = plt.subplots()
+ax.plot(dtArr)
+ax.set(yscale='log',title='dt vs iteration, approximate line search')
 
 #%%
 
@@ -441,10 +519,10 @@ h5File = h5py.File(outputFile,'a')
 h5File.attrs.create('pesRMSE',rmse)
 h5File.close()
 #%%
-fig, ax = plt.subplots()
-cf = ax.contourf(*newCoordVals,pesDiff.T.clip(-5,5),cmap='Spectral_r',levels=30)
-plt.colorbar(cf,ax=ax)
-ax.set(title='PES Difference')
+# fig, ax = plt.subplots()
+# cf = ax.contourf(*newCoordVals,pesDiff.T.clip(-5,5),cmap='Spectral_r',levels=30)
+# plt.colorbar(cf,ax=ax)
+# ax.set(title='PES Difference')
 
 fig, ax = plt.subplots()
 cf = ax.contourf(np.real(newPes).reshape((arrDim,arrDim)).T.clip(-30,30),
@@ -454,18 +532,18 @@ cf = ax.contourf(np.real(newPes).reshape((arrDim,arrDim)).T.clip(-30,30),
 plt.colorbar(cf,ax=ax)
 ax.set(title='Fit PES Real Component')
 
-fig, ax = plt.subplots()
-cf = ax.contourf(np.imag(newPes).reshape((arrDim,arrDim)).T.clip(-1,1),
-                 cmap='Spectral_r',levels=30)
-plt.colorbar(cf,ax=ax)
-ax.set(title='Fit PES Imaginary Component')
+# fig, ax = plt.subplots()
+# cf = ax.contourf(np.imag(newPes).reshape((arrDim,arrDim)).T.clip(-1,1),
+#                  cmap='Spectral_r',levels=30)
+# plt.colorbar(cf,ax=ax)
+# ax.set(title='Fit PES Imaginary Component')
 
-#%%
-sReshaped = s.reshape(2*(arrDim,))
-fig, ax = plt.subplots()
-cf = ax.pcolormesh(np.fft.fftshift(np.real(sReshaped)),cmap='binary')
-plt.colorbar(cf,ax=ax)
+# #%%
+# sReshaped = s.reshape(2*(arrDim,))
+# fig, ax = plt.subplots()
+# cf = ax.pcolormesh(np.fft.fftshift(np.real(sReshaped)),cmap='binary')
+# plt.colorbar(cf,ax=ax)
 
-fig, ax = plt.subplots()
-cf = ax.pcolormesh(np.fft.fftshift(np.imag(sReshaped)),cmap='binary')
-plt.colorbar(cf,ax=ax)
+# fig, ax = plt.subplots()
+# cf = ax.pcolormesh(np.fft.fftshift(np.imag(sReshaped)),cmap='binary')
+# plt.colorbar(cf,ax=ax)
