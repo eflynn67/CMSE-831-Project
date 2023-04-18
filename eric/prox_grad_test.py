@@ -53,13 +53,13 @@ lamb = 500
 
 lassoClass  = modules.ComplexLasso(lamb,sampleEvals,outputFile,CPsi=CPsi)
 
-nIters = 1000
-stepSize = 10**(-4)
+nIters = 500
+stepSize = 10**(-4) #[10^-8, 10^-7, 10^-6, 10^-5, 10^-4]
 
 #opt = modules.ComplexGradientDescent(lassoClass,nIters,stepSize)
 #opt = modules.ProxGradientDescent(lassoClass,nIters,stepSize)
-gamma0 = 1
-m = 1
+gamma0 = 1 # [.1,.5,1,5,10]
+m = 1 # [.1,.5,1,5,10]
 opt = modules.AccProxGradientDescent(lassoClass,nIters,stepSize,m,gamma0)
 s = np.zeros(sampleMatrix.shape[1]).astype(complex)
 print(s)

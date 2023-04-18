@@ -13,7 +13,7 @@ from scipy.interpolate import RectBivariateSpline
 np.random.seed(10)
 
 def read_pes(fName,returnFormat='array'):
-    pes = pd.read_csv('../data/'+fName,sep='\t')
+    pes = pd.read_csv(fName,sep='\t')
     pes['EHFB'] -= pes['EHFB'].mean()
     uniqueCoords = [np.unique(pes[col]) for col in ['Q20','Q30']]
     zz = pes['EHFB'].to_numpy().reshape([len(u) for u in uniqueCoords])
