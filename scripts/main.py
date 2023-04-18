@@ -10,7 +10,7 @@ import time
 from scipy.interpolate import RectBivariateSpline
 
 #For consistency
-# np.random.seed(10)
+np.random.seed(10)
 
 def read_pes(fName,returnFormat='array'):
     pes = pd.read_csv('../data/'+fName,sep='\t')
@@ -96,11 +96,29 @@ class SamplePoints:
         
         sampleMatrix = np.zeros((len(sparse2d),fullArrSize1d,fullArrSize1d))
         sparseGridIndices = (sparse2d * 2**sparseGridOrder).astype(int)
+        # print(sparseGridIndices)
         for (rowIter,row) in enumerate(sparseGridIndices):
             sampleMatrix[(rowIter,)+tuple(row)] = 1
         sampleMatrix = sampleMatrix.reshape((len(sparse2d),-1))
         
         return fullArrSize1d, sampleMatrix
+    
+    @staticmethod
+    def get_suggested_initial_guess(sparseGridOrder):
+        sparse2d = SamplePoints.sparse_2d(sparseGridOrder)
+        
+        fullArrSize1d = len(sparse2d[sparse2d[:,0]==0]) #Number of elements along one axis
+        
+        coordinateArr = np.zeros(2*(fullArrSize1d,))
+        
+        sparseGridIndices = (sparse2d * 2**sparseGridOrder).astype(int)
+        
+        coordinateArr[tuple(sparseGridIndices.T)] = 1
+        
+        frequencyArr = scipy.fft.fft2(coordinateArr)
+        frequencyArr[np.where(frequencyArr!=0)] = 1 + 0*1j
+        
+        return frequencyArr.flatten()
     
 def pes_rmse(uniqueCoords,zz,newPes,flip=False):
     if flip:
@@ -356,7 +374,8 @@ class ComplexGradientDescent:
                 print('Breaking: dt is None')
                 break
             
-            dtArr[i] = dtArr
+            # dt = max(dt,dtMin)
+            dtArr[i] = dt
             
             s -= dt*(realGrad + 1j*imagGrad)
             if verbose:
@@ -455,6 +474,7 @@ if sparseGridOrder > 6:
 uniqueCoords, zz = read_pes('../data/UNEDF1.dat')
 samplePoints, sampleEvals = SamplePoints.get_sparse_grid_2d(uniqueCoords,zz,sparseGridOrder,
                                                             outputFile,flip=True)
+
 arrDim, sampleMatrix = SamplePoints.get_sample_matrix_2d(sparseGridOrder)
 
 dft1d = scipy.fft.fft(np.eye(arrDim))
@@ -474,17 +494,18 @@ lamb = 1000
 # lassoClass = ComplexLasso(lamb,sampleEvals,outputFile,sampleMatrix,Psi)
 lassoClass = ComplexLasso(lamb,sampleEvals,outputFile,CPsi=CPsi)
 
-nIters = 500
+nIters = 5000
 stepSize = 10**(-4)
 opt = ComplexGradientDescent(lassoClass,nIters,stepSize)
 
-s = np.random.rand(sampleMatrix.shape[1]).astype(complex)
+s = SamplePoints.get_suggested_initial_guess(sparseGridOrder)
+# s = np.random.rand(sampleMatrix.shape[1]).astype(complex)
 # s = np.zeros(sampleMatrix.shape[1]).astype(complex)
 
 rt0 = time.time()
-# s = opt.run(s,outputFile)
-# s = opt.run_bb(s,outputFile,stepSize='method_1')
-s, dtArr = opt.run_approximate_line_search(s,outputFile)
+s = opt.run(s,outputFile)
+# s, dtArr = opt.run_bb(s,outputFile,stepSize='method_2')
+# s, dtArr = opt.run_approximate_line_search(s,outputFile)
 rt1 = time.time()
 print("Run time: %.6f"%(rt1-rt0))
 
@@ -496,9 +517,9 @@ fig, ax = plt.subplots()
 ax.plot(np.real(s))
 ax.plot(np.imag(s))
 
-fig, ax = plt.subplots()
-ax.plot(dtArr)
-ax.set(yscale='log',title='dt vs iteration, approximate line search')
+# fig, ax = plt.subplots()
+# ax.plot(dtArr)
+# ax.set(yscale='log',title='dt vs iteration')
 
 #%%
 
