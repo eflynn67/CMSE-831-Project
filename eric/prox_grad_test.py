@@ -57,7 +57,10 @@ nIters = 1000
 stepSize = 10**(-4)
 
 #opt = modules.ComplexGradientDescent(lassoClass,nIters,stepSize)
-opt = modules.ProxGradientDescent(lassoClass,nIters,stepSize)
+#opt = modules.ProxGradientDescent(lassoClass,nIters,stepSize)
+gamma0 = 1
+m = 1
+opt = modules.AccProxGradientDescent(lassoClass,nIters,stepSize,m,gamma0)
 s = np.zeros(sampleMatrix.shape[1]).astype(complex)
 print(s)
 rt0 = time.time()

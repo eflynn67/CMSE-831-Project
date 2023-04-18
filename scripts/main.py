@@ -488,7 +488,75 @@ class ProxGradientDescent:
         h5File['optimizerParams'].attrs.create('stepSize',self.stepSize)
 
         h5File.close()
+class AccProxGradientDescent:
+    def __init__(self,lossClass,maxIters,stepSize,m,gamma0):
+        self.lossClass = lossClass
+        self.maxIters = maxIters
+        self.stepSize = stepSize
+        self.gradf1 = lossClass._grad_f1
+        self.lossVals = np.zeros(self.maxIters)
+        self.lamb = lossClass.lamb
+        self.gamma0 = gamma0
+        self.m = m
+    def _calcTheta(self,gamma):
+        return 0.5*(self.m - gamma)*self.stepSize + np.sqrt(gamma*self.stepSize + 0.25*(self.m-gamma)**2 * self.stepSize**2)
+    def _calcGamma(self,theta):
+        return (theta**2)/self.stepSize
+    def _calcV(self,s1,v1,theta):
+        v2 = s1 + ((theta- self.m*self.stepSize)/(1-self.m*self.stepSize))*(v1 -s1)
+        return v2
+    def _calcY(self,theta,v1,s1):
+        y = s1 + ((theta- self.m*self.stepSize)/(1-self.m*self.stepSize))*(v1 -s1)
+        return y
+    def proxf2(self,s):
+        ## prox mapping on the L1 part of the target function (f2)
+        ## assumes s is complex vector
+        result= np.zeros(s.shape,dtype='complex')
+        # need to check abs of the complex elements of s
+        for k in range(len(s)):
+            if np.abs(s[k]) <= self.stepSize*self.lamb :
+                result[k] = 0
+            else:
+                result[k] = np.abs(s[k]) - self.stepSize*self.lamb
+        return result
 
+    def run(self,initialGuess,fName,verbose=True):
+        s = initialGuess.copy()
+        t0 = time.time()
+        v1 = np.zeros(s.shape,dtype='complex')
+        gamma = self.gamma0
+        for k in range(self.maxIters):
+            self.lossVals[k] = np.real(self.lossClass.loss(s))
+            theta = self._calcTheta(gamma)
+
+            y = self._calcY(theta,v1,s)
+            gradTerm = self.gradf1(np.real(y),np.imag(y))[0] + 1j*self.gradf1(np.real(y),np.imag(y))[1]
+            norm_s = (s - self.stepSize*gradTerm)/np.abs(s - self.stepSize*gradTerm)
+            s = norm_s*self.proxf2(s - self.stepSize*gradTerm)
+
+            v1 = self._calcV(s,v1,theta)
+            gamma = self._calcGamma(theta)
+            if verbose:
+                print('Loss at iteration %d: %.3e'%(k,self.lossVals[k]),flush=True)
+        t1 = time.time()
+
+        self.write_results(fName,t1-t0,s)
+
+        return s
+
+    def write_results(self,fName,runTime,sol):
+        h5File = h5py.File(fName,'a')
+
+        h5File.attrs.create('method','ProximalGradientDescent')
+        h5File.attrs.create('runTime',runTime)
+
+        h5File.create_dataset('lossValues',data=self.lossVals)
+        h5File.create_dataset('solution',data=sol)
+
+        h5File.create_group('optimizerParams')
+        h5File['optimizerParams'].attrs.create('stepSize',self.stepSize)
+
+        h5File.close()
 class ComplexNewtonsMethod:
     def __init__(self,lossClass,maxIters,stepSize):
         self.lossClass = lossClass
