@@ -6,6 +6,8 @@ import h5py
 import pandas as pd
 import sys, os
 import time
+import scipy.fftpack
+import argparse
 
 from scipy.interpolate import RectBivariateSpline
 
@@ -579,110 +581,154 @@ def make_CPsi(sampleMatrix,dft1d):
         #     ret[i,k] = dft1d[idx//n,k//n] * dft1d[idx%n,k%n]
     return ret
 
-outputFile = 'test.h5'
-try:
-    os.remove(outputFile)
-except FileNotFoundError:
-    pass
 
-sparseGridOrder = 5
-if sparseGridOrder > 6:
-    raise ValueError("Expect to reach desktop memory limits soon")
+def main(lamb, stepSize, sparseGridOrder, maxIterations):
+      
+  parentPath = os.path.dirname(os.getcwd())
+  savePath = parentPath + '/data/output' 
+  outputFile = (savePath + "/output_lambda" + str(lamb) + "_stepSize" 
+                + str(stepSize) + "_sparseGridOrder" + str(sparseGridOrder) 
+                + "_maxIterations" + str(maxIterations) + ".h5")
+  
+  try:
+      os.remove(outputFile)
+  except FileNotFoundError:
+      pass
+  
+  if sparseGridOrder > 6:
+      raise ValueError("Expect to reach desktop memory limits soon")
+  
+  uniqueCoords, zz = read_pes('../data/UNEDF1.dat')
+  samplePoints, sampleEvals = SamplePoints.get_sparse_grid_2d(uniqueCoords,zz,sparseGridOrder,
+                                                              outputFile,flip=True)
+  
+  arrDim, sampleMatrix = SamplePoints.get_sample_matrix_2d(sparseGridOrder)
+  
+  dft1d = scipy.fft.fft(np.eye(arrDim))
+  # dft1d = np.fft.fftshift(scipy.fft.fft(np.eye(arrDim)))
+  CPsi = make_CPsi(sampleMatrix,dft1d)
+  Psi = np.kron(dft1d,dft1d)
+  
+  # print(sampleMatrix @ Psi - CPsi)
+  # sys.exit()
+  
+  h5File = h5py.File(outputFile,'a')
+  h5File.attrs.create('basisName','dft')
+  h5File.close()
+  
+  # lamb = 500
+  # lassoClass = ComplexLasso(lamb,sampleEvals,outputFile,sampleMatrix,Psi)
+  lassoClass = ComplexLasso(lamb,sampleEvals,outputFile,CPsi=CPsi)
+  
+  opt = ComplexGradientDescent(lassoClass,maxIterations,stepSize)
+  
+  s = SamplePoints.get_suggested_initial_guess(sparseGridOrder)
+  # s = np.random.rand(sampleMatrix.shape[1]).astype(complex)
+  # s = np.zeros(sampleMatrix.shape[1]).astype(complex)
+  
+  rt0 = time.time()
+  s = opt.run(s,outputFile)
+  # s, dtArr = opt.run_bb(s,outputFile,stepSize='method_2')
+  # s, dtArr = opt.run_approximate_line_search(s,outputFile)
+  rt1 = time.time()
+  print("Run time: %.6f"%(rt1-rt0))
+  
+  fig, ax = plt.subplots()
+  ax.plot(opt.lossVals)
+  ax.set(yscale='log')
+  
+  fig, ax = plt.subplots()
+  ax.plot(np.real(s))
+  ax.plot(np.imag(s))
+  
+  # fig, ax = plt.subplots()
+  # ax.plot(dtArr)
+  # ax.set(yscale='log',title='dt vs iteration')
+  
+  #%%
+  
+  t0 = time.time()
+  newPes = Psi @ s
+  t1 = time.time()
+  print('Matrix multiplication time: %.6f'%(t1-t0))
+  # newPes = np.fft.fftshift(np.fft.fft(s))
+  
+  t0 = time.time()
+  newPes = scipy.fft.fft2(s.reshape(2*(arrDim,)))
+  t1 = time.time()
+  print('FFT time: %.6f'%(t1-t0))
+  
+  rmse, newCoordVals, pesDiff = pes_rmse(uniqueCoords,zz,newPes.reshape(2*(arrDim,)),flip=True)
+  
+  h5File = h5py.File(outputFile,'a')
+  h5File.attrs.create('pesRMSE',rmse)
+  h5File.close()
+  #%%
+  # fig, ax = plt.subplots()
+  # cf = ax.contourf(*newCoordVals,pesDiff.T.clip(-5,5),cmap='Spectral_r',levels=30)
+  # plt.colorbar(cf,ax=ax)
+  # ax.set(title='PES Difference')
+  
+  fig, ax = plt.subplots()
+  cf = ax.contourf(np.real(newPes).reshape((arrDim,arrDim)).T.clip(-30,30),
+                    cmap='Spectral_r',levels=30)
+  # cf = ax.pcolormesh(np.real(newPes).reshape((fullArrSize1d,fullArrSize1d)).clip(-30,30),
+  #                    cmap='Spectral_r')
+  plt.colorbar(cf,ax=ax)
+  ax.set(title='Fit PES Real Component')
+  
+  # fig, ax = plt.subplots()
+  # cf = ax.contourf(np.imag(newPes).reshape((arrDim,arrDim)).T.clip(-1,1),
+  #                  cmap='Spectral_r',levels=30)
+  # plt.colorbar(cf,ax=ax)
+  # ax.set(title='Fit PES Imaginary Component')
+  
+  # #%%
+  # sReshaped = s.reshape(2*(arrDim,))
+  # fig, ax = plt.subplots()
+  # cf = ax.pcolormesh(np.fft.fftshift(np.real(sReshaped)),cmap='binary')
+  # plt.colorbar(cf,ax=ax)
+  
+  # fig, ax = plt.subplots()
+  # cf = ax.pcolormesh(np.fft.fftshift(np.imag(sReshaped)),cmap='binary')
+  # plt.colorbar(cf,ax=ax)
+  
+  return
 
-uniqueCoords, zz = read_pes('../data/UNEDF1.dat')
-samplePoints, sampleEvals = SamplePoints.get_sparse_grid_2d(uniqueCoords,zz,sparseGridOrder,
-                                                            outputFile,flip=True)
+def getcommmandlineinputs(args):
 
-arrDim, sampleMatrix = SamplePoints.get_sample_matrix_2d(sparseGridOrder)
+  defaultInputs  = {
+    "lamb" : 1000,  
+    "stepSize" : 10**(-4), 
+    "sparseGridOrder" : 5,
+    "maxIterations" : 5000,
+    } 
+  
+  parser = argparse.ArgumentParser(description=("Input arguments: --lamb =... "
+                                     +"--stepSize=... --sparseGridOrder=... --maxIterations=..."))
+  
+  parser.add_argument("--lamb", required = False, type = float, default = defaultInputs["lamb"],
+                         help = "Larger value enforces sparsity of Fourier transformed PES.")
+  
+  parser.add_argument("--stepSize", required = False, type = float, default = defaultInputs["stepSize"],
+                         help = "Lower value for less accumulated error in solver.")
+   
+  parser.add_argument("--sparseGridOrder", required = False, type = int, default = defaultInputs["sparseGridOrder"],
+                         help = "Determines mesh size of PES.")
+  
+  parser.add_argument("--maxIterations", required = False, type = int, default = defaultInputs["maxIterations"],
+                         help = "Max iterations that solver can run.")
+  
+  args = parser.parse_args(args)
+  defaultInputs["lamb"] = args.lamb
+  defaultInputs["stepSize"] = args.stepSize
+  defaultInputs["sparseGridOrder"] = args.sparseGridOrder
+  defaultInputs["maxIterations"] = args.maxIterations
+  
+  return defaultInputs
+  
 
-dft1d = scipy.fft.fft(np.eye(arrDim))
-# dft1d = np.fft.fftshift(scipy.fft.fft(np.eye(arrDim)))
-CPsi = make_CPsi(sampleMatrix,dft1d)
-Psi = np.kron(dft1d,dft1d)
-
-# print(sampleMatrix @ Psi - CPsi)
-# sys.exit()
-
-h5File = h5py.File(outputFile,'a')
-h5File.attrs.create('basisName','dft')
-h5File.close()
-
-# lamb = 500
-lamb = 1000
-# lassoClass = ComplexLasso(lamb,sampleEvals,outputFile,sampleMatrix,Psi)
-lassoClass = ComplexLasso(lamb,sampleEvals,outputFile,CPsi=CPsi)
-
-nIters = 5000
-stepSize = 10**(-4)
-opt = ComplexGradientDescent(lassoClass,nIters,stepSize)
-
-s = SamplePoints.get_suggested_initial_guess(sparseGridOrder)
-# s = np.random.rand(sampleMatrix.shape[1]).astype(complex)
-# s = np.zeros(sampleMatrix.shape[1]).astype(complex)
-
-rt0 = time.time()
-s = opt.run(s,outputFile)
-# s, dtArr = opt.run_bb(s,outputFile,stepSize='method_2')
-# s, dtArr = opt.run_approximate_line_search(s,outputFile)
-rt1 = time.time()
-print("Run time: %.6f"%(rt1-rt0))
-
-fig, ax = plt.subplots()
-ax.plot(opt.lossVals)
-ax.set(yscale='log')
-
-fig, ax = plt.subplots()
-ax.plot(np.real(s))
-ax.plot(np.imag(s))
-
-# fig, ax = plt.subplots()
-# ax.plot(dtArr)
-# ax.set(yscale='log',title='dt vs iteration')
-
-#%%
-
-t0 = time.time()
-newPes = Psi @ s
-t1 = time.time()
-print('Matrix multiplication time: %.6f'%(t1-t0))
-# newPes = np.fft.fftshift(np.fft.fft(s))
-
-t0 = time.time()
-newPes = scipy.fft.fft2(s.reshape(2*(arrDim,)))
-t1 = time.time()
-print('FFT time: %.6f'%(t1-t0))
-
-rmse, newCoordVals, pesDiff = pes_rmse(uniqueCoords,zz,newPes.reshape(2*(arrDim,)),flip=True)
-
-h5File = h5py.File(outputFile,'a')
-h5File.attrs.create('pesRMSE',rmse)
-h5File.close()
-#%%
-# fig, ax = plt.subplots()
-# cf = ax.contourf(*newCoordVals,pesDiff.T.clip(-5,5),cmap='Spectral_r',levels=30)
-# plt.colorbar(cf,ax=ax)
-# ax.set(title='PES Difference')
-
-fig, ax = plt.subplots()
-cf = ax.contourf(np.real(newPes).reshape((arrDim,arrDim)).T.clip(-30,30),
-                  cmap='Spectral_r',levels=30)
-# cf = ax.pcolormesh(np.real(newPes).reshape((fullArrSize1d,fullArrSize1d)).clip(-30,30),
-#                    cmap='Spectral_r')
-plt.colorbar(cf,ax=ax)
-ax.set(title='Fit PES Real Component')
-
-# fig, ax = plt.subplots()
-# cf = ax.contourf(np.imag(newPes).reshape((arrDim,arrDim)).T.clip(-1,1),
-#                  cmap='Spectral_r',levels=30)
-# plt.colorbar(cf,ax=ax)
-# ax.set(title='Fit PES Imaginary Component')
-
-# #%%
-# sReshaped = s.reshape(2*(arrDim,))
-# fig, ax = plt.subplots()
-# cf = ax.pcolormesh(np.fft.fftshift(np.real(sReshaped)),cmap='binary')
-# plt.colorbar(cf,ax=ax)
-
-# fig, ax = plt.subplots()
-# cf = ax.pcolormesh(np.fft.fftshift(np.imag(sReshaped)),cmap='binary')
-# plt.colorbar(cf,ax=ax)
+if __name__ == "__main__":
+   
+  inputs = getcommmandlineinputs(sys.argv[1:])
+  main(inputs["lamb"], inputs["stepSize"], inputs["sparseGridOrder"], inputs["maxIterations"])
