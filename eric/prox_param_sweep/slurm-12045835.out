@@ -1,0 +1,339 @@
+
+CommandNotFoundError: Your shell has not been properly configured to use 'conda activate'.
+To initialize your shell, run
+
+    $ conda init <SHELL_NAME>
+
+Currently supported shells are:
+  - bash
+  - fish
+  - tcsh
+  - xonsh
+  - zsh
+  - powershell
+
+See 'conda init --help' for more information and options.
+
+IMPORTANT: You may need to close and restart your shell after running 'conda init'.
+
+
+Wed Apr 19 11:31:41 EDT 2023
+Run time: 376.439742
+==================================================
+Completed: lamb = 500, stepSize = 1e-06 , gamma0 = 0.1, m = 0.1
+Run time: 321.075613
+==================================================
+Completed: lamb = 500, stepSize = 1e-06 , gamma0 = 0.1, m = 1
+Run time: 312.309870
+==================================================
+Completed: lamb = 500, stepSize = 1e-06 , gamma0 = 0.1, m = 5
+Run time: 305.648840
+==================================================
+Completed: lamb = 500, stepSize = 1e-06 , gamma0 = 0.1, m = 10
+Run time: 301.846116
+==================================================
+Completed: lamb = 500, stepSize = 1e-06 , gamma0 = 1, m = 0.1
+Run time: 310.902036
+==================================================
+Completed: lamb = 500, stepSize = 1e-06 , gamma0 = 1, m = 1
+Run time: 304.819189
+==================================================
+Completed: lamb = 500, stepSize = 1e-06 , gamma0 = 1, m = 5
+Run time: 289.220186
+==================================================
+Completed: lamb = 500, stepSize = 1e-06 , gamma0 = 1, m = 10
+Run time: 301.488955
+==================================================
+Completed: lamb = 500, stepSize = 1e-06 , gamma0 = 5, m = 0.1
+Run time: 314.547675
+==================================================
+Completed: lamb = 500, stepSize = 1e-06 , gamma0 = 5, m = 1
+Run time: 308.348762
+==================================================
+Completed: lamb = 500, stepSize = 1e-06 , gamma0 = 5, m = 5
+Run time: 292.927147
+==================================================
+Completed: lamb = 500, stepSize = 1e-06 , gamma0 = 5, m = 10
+Run time: 286.266104
+==================================================
+Completed: lamb = 500, stepSize = 1e-06 , gamma0 = 10, m = 0.1
+Run time: 285.582227
+==================================================
+Completed: lamb = 500, stepSize = 1e-06 , gamma0 = 10, m = 1
+Run time: 285.730828
+==================================================
+Completed: lamb = 500, stepSize = 1e-06 , gamma0 = 10, m = 5
+Run time: 285.279945
+==================================================
+Completed: lamb = 500, stepSize = 1e-06 , gamma0 = 10, m = 10
+Run time: 274.626588
+==================================================
+Completed: lamb = 500, stepSize = 1e-05 , gamma0 = 0.1, m = 0.1
+Run time: 277.772625
+==================================================
+Completed: lamb = 500, stepSize = 1e-05 , gamma0 = 0.1, m = 1
+Run time: 278.273298
+==================================================
+Completed: lamb = 500, stepSize = 1e-05 , gamma0 = 0.1, m = 5
+Run time: 276.235379
+==================================================
+Completed: lamb = 500, stepSize = 1e-05 , gamma0 = 0.1, m = 10
+Run time: 276.261534
+==================================================
+Completed: lamb = 500, stepSize = 1e-05 , gamma0 = 1, m = 0.1
+Run time: 278.177237
+==================================================
+Completed: lamb = 500, stepSize = 1e-05 , gamma0 = 1, m = 1
+Run time: 276.104219
+==================================================
+Completed: lamb = 500, stepSize = 1e-05 , gamma0 = 1, m = 5
+Run time: 275.693237
+==================================================
+Completed: lamb = 500, stepSize = 1e-05 , gamma0 = 1, m = 10
+Run time: 277.588311
+==================================================
+Completed: lamb = 500, stepSize = 1e-05 , gamma0 = 5, m = 0.1
+Run time: 276.052612
+==================================================
+Completed: lamb = 500, stepSize = 1e-05 , gamma0 = 5, m = 1
+Run time: 278.419161
+==================================================
+Completed: lamb = 500, stepSize = 1e-05 , gamma0 = 5, m = 5
+Run time: 278.247847
+==================================================
+Completed: lamb = 500, stepSize = 1e-05 , gamma0 = 5, m = 10
+Run time: 275.174229
+==================================================
+Completed: lamb = 500, stepSize = 1e-05 , gamma0 = 10, m = 0.1
+Run time: 277.192391
+==================================================
+Completed: lamb = 500, stepSize = 1e-05 , gamma0 = 10, m = 1
+Run time: 372.107945
+==================================================
+Completed: lamb = 500, stepSize = 1e-05 , gamma0 = 10, m = 5
+Run time: 320.831414
+==================================================
+Completed: lamb = 500, stepSize = 1e-05 , gamma0 = 10, m = 10
+Run time: 276.255135
+==================================================
+Completed: lamb = 500, stepSize = 0.0001 , gamma0 = 0.1, m = 0.1
+Run time: 401.356630
+==================================================
+Completed: lamb = 500, stepSize = 0.0001 , gamma0 = 0.1, m = 1
+Run time: 351.560985
+==================================================
+Completed: lamb = 500, stepSize = 0.0001 , gamma0 = 0.1, m = 5
+Run time: 305.084835
+==================================================
+Completed: lamb = 500, stepSize = 0.0001 , gamma0 = 0.1, m = 10
+Run time: 443.057528
+==================================================
+Completed: lamb = 500, stepSize = 0.0001 , gamma0 = 1, m = 0.1
+Run time: 295.008499
+==================================================
+Completed: lamb = 500, stepSize = 0.0001 , gamma0 = 1, m = 1
+Run time: 274.450628
+==================================================
+Completed: lamb = 500, stepSize = 0.0001 , gamma0 = 1, m = 5
+Run time: 275.114243
+==================================================
+Completed: lamb = 500, stepSize = 0.0001 , gamma0 = 1, m = 10
+Run time: 273.278919
+==================================================
+Completed: lamb = 500, stepSize = 0.0001 , gamma0 = 5, m = 0.1
+Run time: 273.807252
+==================================================
+Completed: lamb = 500, stepSize = 0.0001 , gamma0 = 5, m = 1
+Run time: 275.801058
+==================================================
+Completed: lamb = 500, stepSize = 0.0001 , gamma0 = 5, m = 5
+Run time: 424.262664
+==================================================
+Completed: lamb = 500, stepSize = 0.0001 , gamma0 = 5, m = 10
+Run time: 278.907918
+==================================================
+Completed: lamb = 500, stepSize = 0.0001 , gamma0 = 10, m = 0.1
+Run time: 274.419315
+==================================================
+Completed: lamb = 500, stepSize = 0.0001 , gamma0 = 10, m = 1
+Run time: 273.440784
+==================================================
+Completed: lamb = 500, stepSize = 0.0001 , gamma0 = 10, m = 5
+Run time: 274.179519
+==================================================
+Completed: lamb = 500, stepSize = 0.0001 , gamma0 = 10, m = 10
+Run time: 309.156169
+==================================================
+Completed: lamb = 1000, stepSize = 1e-06 , gamma0 = 0.1, m = 0.1
+Run time: 316.654802
+==================================================
+Completed: lamb = 1000, stepSize = 1e-06 , gamma0 = 0.1, m = 1
+Run time: 396.977799
+==================================================
+Completed: lamb = 1000, stepSize = 1e-06 , gamma0 = 0.1, m = 5
+Run time: 327.661589
+==================================================
+Completed: lamb = 1000, stepSize = 1e-06 , gamma0 = 0.1, m = 10
+Run time: 278.466161
+==================================================
+Completed: lamb = 1000, stepSize = 1e-06 , gamma0 = 1, m = 0.1
+Run time: 277.791744
+==================================================
+Completed: lamb = 1000, stepSize = 1e-06 , gamma0 = 1, m = 1
+Run time: 278.466728
+==================================================
+Completed: lamb = 1000, stepSize = 1e-06 , gamma0 = 1, m = 5
+Run time: 277.577234
+==================================================
+Completed: lamb = 1000, stepSize = 1e-06 , gamma0 = 1, m = 10
+Run time: 277.970722
+==================================================
+Completed: lamb = 1000, stepSize = 1e-06 , gamma0 = 5, m = 0.1
+Run time: 279.071591
+==================================================
+Completed: lamb = 1000, stepSize = 1e-06 , gamma0 = 5, m = 1
+Run time: 394.132047
+==================================================
+Completed: lamb = 1000, stepSize = 1e-06 , gamma0 = 5, m = 5
+Run time: 297.958723
+==================================================
+Completed: lamb = 1000, stepSize = 1e-06 , gamma0 = 5, m = 10
+Run time: 279.206526
+==================================================
+Completed: lamb = 1000, stepSize = 1e-06 , gamma0 = 10, m = 0.1
+Run time: 278.590763
+==================================================
+Completed: lamb = 1000, stepSize = 1e-06 , gamma0 = 10, m = 1
+Run time: 278.185563
+==================================================
+Completed: lamb = 1000, stepSize = 1e-06 , gamma0 = 10, m = 5
+Run time: 278.411431
+==================================================
+Completed: lamb = 1000, stepSize = 1e-06 , gamma0 = 10, m = 10
+Run time: 274.487206
+==================================================
+Completed: lamb = 1000, stepSize = 1e-05 , gamma0 = 0.1, m = 0.1
+Run time: 273.744403
+==================================================
+Completed: lamb = 1000, stepSize = 1e-05 , gamma0 = 0.1, m = 1
+Run time: 274.824978
+==================================================
+Completed: lamb = 1000, stepSize = 1e-05 , gamma0 = 0.1, m = 5
+Run time: 274.716372
+==================================================
+Completed: lamb = 1000, stepSize = 1e-05 , gamma0 = 0.1, m = 10
+Run time: 273.770115
+==================================================
+Completed: lamb = 1000, stepSize = 1e-05 , gamma0 = 1, m = 0.1
+Run time: 275.557726
+==================================================
+Completed: lamb = 1000, stepSize = 1e-05 , gamma0 = 1, m = 1
+Run time: 295.085724
+==================================================
+Completed: lamb = 1000, stepSize = 1e-05 , gamma0 = 1, m = 5
+Run time: 335.507207
+==================================================
+Completed: lamb = 1000, stepSize = 1e-05 , gamma0 = 1, m = 10
+Run time: 294.762103
+==================================================
+Completed: lamb = 1000, stepSize = 1e-05 , gamma0 = 5, m = 0.1
+Run time: 330.864588
+==================================================
+Completed: lamb = 1000, stepSize = 1e-05 , gamma0 = 5, m = 1
+Run time: 388.610627
+==================================================
+Completed: lamb = 1000, stepSize = 1e-05 , gamma0 = 5, m = 5
+Run time: 274.315869
+==================================================
+Completed: lamb = 1000, stepSize = 1e-05 , gamma0 = 5, m = 10
+Run time: 343.373209
+==================================================
+Completed: lamb = 1000, stepSize = 1e-05 , gamma0 = 10, m = 0.1
+Run time: 323.769881
+==================================================
+Completed: lamb = 1000, stepSize = 1e-05 , gamma0 = 10, m = 1
+Run time: 302.196900
+==================================================
+Completed: lamb = 1000, stepSize = 1e-05 , gamma0 = 10, m = 5
+Run time: 273.596162
+==================================================
+Completed: lamb = 1000, stepSize = 1e-05 , gamma0 = 10, m = 10
+Run time: 272.824775
+==================================================
+Completed: lamb = 1000, stepSize = 0.0001 , gamma0 = 0.1, m = 0.1
+Run time: 280.779567
+==================================================
+Completed: lamb = 1000, stepSize = 0.0001 , gamma0 = 0.1, m = 1
+Run time: 272.308374
+==================================================
+Completed: lamb = 1000, stepSize = 0.0001 , gamma0 = 0.1, m = 5
+Run time: 284.614353
+==================================================
+Completed: lamb = 1000, stepSize = 0.0001 , gamma0 = 0.1, m = 10
+Run time: 276.070789
+==================================================
+Completed: lamb = 1000, stepSize = 0.0001 , gamma0 = 1, m = 0.1
+Run time: 280.794232
+==================================================
+Completed: lamb = 1000, stepSize = 0.0001 , gamma0 = 1, m = 1
+Run time: 398.770288
+==================================================
+Completed: lamb = 1000, stepSize = 0.0001 , gamma0 = 1, m = 5
+Run time: 431.035925
+==================================================
+Completed: lamb = 1000, stepSize = 0.0001 , gamma0 = 1, m = 10
+Run time: 440.042243
+==================================================
+Completed: lamb = 1000, stepSize = 0.0001 , gamma0 = 5, m = 0.1
+Run time: 416.145759
+==================================================
+Completed: lamb = 1000, stepSize = 0.0001 , gamma0 = 5, m = 1
+Run time: 306.814997
+==================================================
+Completed: lamb = 1000, stepSize = 0.0001 , gamma0 = 5, m = 5
+Run time: 274.039287
+==================================================
+Completed: lamb = 1000, stepSize = 0.0001 , gamma0 = 5, m = 10
+Run time: 271.553397
+==================================================
+Completed: lamb = 1000, stepSize = 0.0001 , gamma0 = 10, m = 0.1
+Run time: 273.688863
+==================================================
+Completed: lamb = 1000, stepSize = 0.0001 , gamma0 = 10, m = 1
+Run time: 277.779663
+==================================================
+Completed: lamb = 1000, stepSize = 0.0001 , gamma0 = 10, m = 5
+Run time: 273.887671
+==================================================
+Completed: lamb = 1000, stepSize = 0.0001 , gamma0 = 10, m = 10
+Wed Apr 19 19:39:02 EDT 2023
+JobId=12045835 JobName=CS_prox_param_sweep
+   UserId=flynner6(1027830) GroupId=frib(2062) MCS_label=N/A
+   Priority=55658 Nice=0 Account=ptg QOS=ptg
+   JobState=RUNNING Reason=None Dependency=(null)
+   Requeue=1 Restarts=0 BatchFlag=1 Reboot=0 ExitCode=0:0
+   RunTime=08:07:31 TimeLimit=12:00:00 TimeMin=N/A
+   SubmitTime=2023-04-19T11:31:27 EligibleTime=2023-04-19T11:31:27
+   AccrueTime=2023-04-19T11:31:27
+   StartTime=2023-04-19T11:31:31 EndTime=2023-04-19T23:31:31 Deadline=N/A
+   SuspendTime=None SecsPreSuspend=0 LastSchedEval=2023-04-19T11:31:31 Scheduler=Main
+   Partition=ptg AllocNode:Sid=dev-intel18:2753
+   ReqNodeList=(null) ExcNodeList=(null)
+   NodeList=lac-156
+   BatchHost=lac-156
+   NumNodes=1 NumCPUs=1 NumTasks=1 CPUs/Task=1 ReqB:S:C:T=0:0:*:*
+   ReqTRES=cpu=1,mem=8G,node=1,billing=1245
+   AllocTRES=cpu=1,mem=8G,node=1,billing=1245
+   Socks/Node=* NtasksPerN:B:S:C=0:0:*:* CoreSpec=*
+   MinCPUsNode=1 MinMemoryCPU=8G MinTmpDiskNode=0
+   Features=[intel14|intel16|intel18|(amr|acm)|nvf|nal|nif] DelayBoot=00:00:00
+   OverSubscribe=OK Contiguous=0 Licenses=(null) Network=(null)
+   Command=/mnt/ufs18/home-111/flynner6/CMSE-831-Project/eric/prox_param_sweep/submit_large.sb
+   WorkDir=/mnt/ufs18/home-111/flynner6/CMSE-831-Project/eric/prox_param_sweep
+   Comment=stdout=/mnt/ufs18/home-111/flynner6/CMSE-831-Project/eric/prox_param_sweep/slurm-12045835.out 
+   StdErr=/mnt/ufs18/home-111/flynner6/CMSE-831-Project/eric/prox_param_sweep/slurm-12045835.out
+   StdIn=/dev/null
+   StdOut=/mnt/ufs18/home-111/flynner6/CMSE-831-Project/eric/prox_param_sweep/slurm-12045835.out
+   Power=
+   
+

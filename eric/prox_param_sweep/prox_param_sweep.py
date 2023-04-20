@@ -46,10 +46,10 @@ CPsi = modules.make_CPsi(sampleMatrix,dft1d)
 nIters = 1000
 
 # lambda for the opt problem
-lambArr = [50,100,500,1000,5000,10000]
-stepSizeArr = [10**(-8), 10**(-7), 10**(-6), 10**(-5), 10**(-4)]
-gamma0Arr = [.1,.5,1,5,10]
-mArr = [.1,.5,1,5,10]
+lambArr = [500,1000]
+stepSizeArr = [10**(-6), 10**(-5), 10**(-4)]
+gamma0Arr = [.1,1,5,10]
+mArr = [.1,1,5,10]
 
 for lamb in lambArr:
     for stepSize in stepSizeArr:
